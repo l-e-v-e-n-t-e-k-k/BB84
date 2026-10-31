@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from bb84 import bob_merese, elokeszites, meres
+from bb84 import bob_merese, elokeszites, eve_merese, meres
 
 
 class MeresTests(unittest.TestCase):
@@ -124,6 +124,89 @@ class BobMereseTests(unittest.TestCase):
 
     def test_ures_poziciolistaval_is_hivhato(self):
         bob_merese([])
+
+
+class EveTests(unittest.TestCase):
+    def test_elokeszites_aktiv_de_meg_nem_mert_tamadoval(self):
+        eve_bazisok = ["X", "Z"]
+        poziciok = elokeszites([0, 1], ["Z", "X"], ["Z", "X"], eve_bazisok)
+        self.assertEqual([p["eve"] for p in poziciok], [("X", None), ("Z", None)])
+        self.assertEqual(eve_bazisok, ["X", "Z"])
+
+    def test_eve_bazisainak_ellenorzese(self):
+        for bazisok in ([], ["Z", "X"], ["Y"]):
+            with self.subTest(bazisok=bazisok):
+                with self.assertRaises(ValueError):
+                    elokeszites([0], ["Z"], ["Z"], bazisok)
+
+    def test_eve_nelkul_a_lepes_nem_valtoztat_a_futason(self):
+        poziciok = elokeszites([0], ["Z"], ["X"])
+        with patch("bb84.random.choice") as sorsolas:
+            eve_merese(poziciok)
+        sorsolas.assert_not_called()
+        self.assertIsNone(poziciok[0]["eve"])
+        self.assertEqual(poziciok[0]["bob"], ("X", None))
+
+    def test_azonos_bazisnal_eve_az_eredeti_allapotot_kuldi_tovabb(self):
+        poziciok = elokeszites(
+            [0, 1, 0, 1], ["Z", "Z", "X", "X"],
+            ["Z", "Z", "X", "X"], ["Z", "Z", "X", "X"]
+        )
+        with patch("bb84.random.choice") as sorsolas:
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+        sorsolas.assert_not_called()
+        for pozicio in poziciok:
+            self.assertEqual(pozicio["eve"], pozicio["alice"])
+            self.assertEqual(pozicio["bob"], pozicio["alice"])
+
+    def test_bob_eve_allapotat_meri(self):
+        poziciok = elokeszites([0], ["Z"], ["X"], ["X"])
+        with patch("bb84.random.choice", return_value=1) as sorsolas:
+            eve_merese(poziciok)
+            self.assertEqual(poziciok[0]["bob"], ("X", None))
+            bob_merese(poziciok)
+        self.assertEqual(poziciok[0]["eve"], ("X", 1))
+        self.assertEqual(poziciok[0]["bob"], ("X", 1))
+        self.assertEqual(poziciok[0]["alice"], ("Z", 0))
+        sorsolas.assert_called_once_with((0, 1))
+
+    def test_eve_eltero_bazisa_hibat_is_okozhat_de_nem_kotelezo(self):
+        for bob_bit in (0, 1):
+            with self.subTest(bob_bit=bob_bit):
+                poziciok = elokeszites([0], ["Z"], ["Z"], ["X"])
+                with patch("bb84.random.choice", side_effect=[1, bob_bit]):
+                    eve_merese(poziciok)
+                    bob_merese(poziciok)
+                self.assertEqual(poziciok[0]["bob"], ("Z", bob_bit))
+                self.assertIsNone(poziciok[0]["megtartva"])
+                self.assertFalse(poziciok[0]["ellenorzo_minta"])
+
+    def test_ismetelt_tamadas_es_meres_megorzi_a_nullas_bitet(self):
+        poziciok = elokeszites([1], ["Z"], ["X"], ["X"])
+        with patch("bb84.random.choice", return_value=0) as sorsolas:
+            eve_merese(poziciok)
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+        self.assertEqual(poziciok[0]["eve"], ("X", 0))
+        self.assertEqual(poziciok[0]["bob"], ("X", 0))
+        sorsolas.assert_called_once_with((0, 1))
+
+    def test_bob_nem_elozheti_meg_evet_reszleges_modositas_sincs(self):
+        poziciok = elokeszites([0, 1], ["Z", "Z"], ["Z", "Z"], ["Z", "X"])
+        poziciok[0]["eve"] = ("Z", 0)
+        with self.assertRaises(ValueError):
+            bob_merese(poziciok)
+        self.assertTrue(all(p["bob"][1] is None for p in poziciok))
+
+    def test_eve_nem_irhatja_at_bob_mar_elvegzett_mereset(self):
+        poziciok = elokeszites([0, 1], ["Z", "Z"], ["Z", "Z"], ["X", "X"])
+        poziciok[1]["bob"] = ("Z", 1)
+        with self.assertRaises(ValueError):
+            eve_merese(poziciok)
+        self.assertTrue(all(p["eve"][1] is None for p in poziciok))
 
 
 if __name__ == "__main__":

@@ -29,7 +29,7 @@ py -c 'from bb84 import meres; print(meres(("Z", 1), "Z")); print(meres(("Z", 1)
 Ez ideális modell a négy BB84-állapotra. A függvény érvényes
 bemeneteket feltételez: a bázis `"Z"` vagy `"X"`, a bit `0` vagy `1`.
 
-## Többpozíciós futás Eve nélkül
+## Többpozíciós futás
 
 Az `elokeszites()` ellenőrzi a három bemeneti listát, és létrehozza a
 pozíciókat. Üres listáknál, eltérő hosszúságnál vagy érvénytelen bit/bázis
@@ -38,6 +38,10 @@ esetén `ValueError` hibát jelez. Bob mérési eredménye kezdetben `None`.
 A `bob_merese()` ugyanazokban a szótárakban tárolja el Bob eredményeit.
 Nem ad vissza új listát; a már mért pozíciókat ismételt híváskor kihagyja.
 Alice eredeti adatai és a szűréshez tartozó jelölések változatlanok maradnak.
+
+Eve bekapcsolásához az `elokeszites()` negyedik paramétereként adjunk meg
+egy bázislistát. Ekkor a sorrend: `eve_merese(poziciok)`, majd
+`bob_merese(poziciok)`. A működés magyarázatai a függvényeknél találhatók.
 
 ## Ellenőrzés
 
