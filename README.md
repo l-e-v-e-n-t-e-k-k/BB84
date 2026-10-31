@@ -24,6 +24,8 @@ print(meres(("Z", 1), "Z")) #1 biztosan
 print(meres(("Z", 1), "X")) #0 vagy 1
 ```
 
+py -c 'from bb84 import meres; print(meres(("Z", 1), "Z")); print(meres(("Z", 1), "X"))'
+
 Ez ideális modell a négy BB84-állapotra. A függvény érvényes
 bemeneteket feltételez: a bázis `"Z"` vagy `"X"`, a bit `0` vagy `1`.
 A bemenetellenőrzés későbbi lépés.
