@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f0e7">
+  <title>BB84 — A kulcs útja</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23252c29'/%3E%3Cpath d='M14 32h36M32 14v36' stroke='%23ece8d8' stroke-width='5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body>
+  <a class="skip-link" href="#stage">Ugrás a kísérlethez</a>
+  <div class="page">
+    <header class="masthead">
+      <button id="settingsButton" class="button primary">Kísérlet beállítása</button>
+    </header>
+    <div class="run-strip"><span id="runSummary">Nincs aktív kísérlet.</span></div>
+
+    <main>
+      <div class="lab-layout">
+        <aside class="phase-rail" aria-label="A protokoll fázisai">
+          <div class="section-label">FÁZISOK</div>
+          <nav id="phaseNav" aria-label="Fázisnapló"></nav>
+        </aside>
+
+        <section id="stage" class="stage" aria-labelledby="stageTitle">
+          <div id="historyBanner" class="history-banner" hidden><span>Korábbi nézet</span><button id="liveButton" type="button">Élő futás</button></div>
+          <div class="stage-heading"><div id="phaseNumber" class="phase-number" aria-hidden="true">01</div><div><h1 id="stageTitle">Előkészítés</h1><p id="stageDescription">Állítsd be a kísérletet az indításhoz.</p></div></div>
+          <div class="experiment-meta"><span id="qubitLabel">A KVANTUMCSATORNA</span><span id="measurementProgress">Alice → Eve → Bob</span></div>
+          <div id="apparatus" class="apparatus">
+            <article class="actor alice"><div class="actor-top"><span class="actor-letter">A</span><span>ALICE <small>előkészítés</small></span></div><div id="aliceSymbol" class="symbol"></div><div id="aliceState" class="actor-state">A küldő</div></article>
+            <div class="channel channel-one" aria-hidden="true"><span class="channel-label">qubit</span><i class="photon"></i><span class="channel-arrow">→</span></div>
+            <article class="actor eve"><div class="actor-top"><span class="actor-letter">E</span><span>EVE <small>elfogás · újraküldés</small></span></div><div id="eveSymbol" class="symbol"></div><div id="eveState" class="actor-state">A lehallgató</div></article>
+            <div class="channel channel-two" aria-hidden="true"><span class="channel-label">qubit</span><i class="photon"></i><span class="channel-arrow">→</span></div>
+            <article class="actor bob"><div class="actor-top"><span class="actor-letter">B</span><span>BOB <small>mérés</small></span></div><div id="bobSymbol" class="symbol"></div><div id="bobState" class="actor-state">A fogadó</div></article>
+          </div>
+          <div id="results" class="results" hidden>
+            <div class="qber-panel"><span class="eyebrow">MINTABELI QBER</span><strong id="qberValue">—</strong><span id="qberDescription"></span></div>
+            <div class="key-panel"><span class="eyebrow">KULCSJELÖLTEK</span><div><span>Alice</span><code id="aliceKey"></code></div><div><span>Bob</span><code id="bobKey"></code></div><p>Hibajavítás nélkül.</p></div>
+          </div>
+          <div class="stage-controls"><div class="control-buttons"><button id="nextButton" class="button primary" disabled>Következő</button><button id="allButton" class="button secondary" disabled>Összes kvantumbit mérése</button></div><span id="controlHint"></span></div>
+          <div id="globalError" class="error" role="alert" hidden></div>
+          <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <section class="ledger" aria-labelledby="ledgerTitle">
+        <div class="ledger-heading"><h2 id="ledgerTitle">Pozíciók</h2><div class="ledger-totals"><span><strong id="keptCount">—</strong> megtartott</span><span><strong id="sampleCount">—</strong> ellenőrzött</span></div></div>
+        <div class="legend"><span><i class="legend-keep"></i> megtartott</span><span><i class="legend-sample"></i> ellenőrző minta</span><span><i class="legend-error"></i> biteltérés</span></div>
+        <div class="table-wrap" tabindex="0" role="region" aria-label="A pozíciók adatai, kis képernyőn vízszintesen görgethető">
+          <table><thead><tr><th scope="col">#</th><th scope="col">Alice bázisa</th><th scope="col">Bit</th><th scope="col">Eve bázisa</th><th scope="col">Bit</th><th scope="col">Bob bázisa</th><th scope="col">Bit</th><th scope="col">Szűrés</th><th scope="col">Minta</th><th scope="col" title="Eltérés az egyező Alice–Bob bázisú pozícióknál.">Biteltérés</th></tr></thead><tbody id="positionRows"><tr><td colspan="10" class="empty-table">Nincs adat.</td></tr></tbody></table>
+        </div>
+      </section>
+    </main>
+    <footer><button id="resetButton" type="button" disabled>Futás törlése</button></footer>
+  </div>
+
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+    <div class="dialog-header"><button id="closeSettings" class="close-button" aria-label="Beállítások bezárása">×</button></div>
+    <h2 id="settingsTitle">Kísérlet beállítása</h2>
+    <form id="settingsForm">
+      <div class="form-top"><label>Qubitek száma <input id="qubitCount" name="darab" type="number" min="1" max="256" value="12" required><small>1–256 pozíció</small></label><label>Ellenőrző minta (%) <input id="samplePercent" name="mintaszazalek" type="number" min="0" max="100" step="any" value="25" required><small>Felfelé kerekítve</small></label><button id="randomButton" class="button secondary" type="button">Véletlen kitöltés</button></div>
+      <div class="form-rule"><span>BITEK ÉS BÁZISOK</span><span>0 / 1 · Z / X</span></div>
+      <label>Alice bitjei <input id="aliceBits" name="alice_bitek" value="011010100110" autocomplete="off" spellcheck="false" required></label>
+      <label>Alice bázisai <input id="aliceBases" name="alice_bazisok" value="ZXXZZXZXXZZX" autocomplete="off" spellcheck="false" required></label>
+      <label>Bob bázisai <input id="bobBases" name="bob_bazisok" value="ZZXXZXZXXZXZ" autocomplete="off" spellcheck="false" required></label>
+      <div class="eve-toggle"><label><input id="eveEnabled" name="eve_aktiv" type="checkbox" checked> Eve aktív</label></div>
+      <label id="eveInputLabel">Eve bázisai <input id="eveBases" name="eve_bazisok" value="XZZXZXZZXXZX" autocomplete="off" spellcheck="false" required></label>
+      <p class="form-note">Minden sorozat a megadott számú jelből álljon. Szóköz használható.</p>
+      <div id="formError" class="error" role="alert" hidden></div>
+      <div class="dialog-bottom"><button id="startButton" class="button primary" type="submit">Kísérlet indítása</button></div>
+    </form>
+  </dialog>
+</body>
+</html>

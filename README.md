@@ -43,7 +43,14 @@ Eve bekapcsolásához az `elokeszites()` negyedik paramétereként adjunk meg
 egy bázislistát. Ekkor a sorrend: `eve_merese(poziciok)`, majd
 `bob_merese(poziciok)`. A működés magyarázatai a függvényeknél találhatók.
 
-## Ellenőrzés
+## Böngészős indítás
+
+Aktív virtuális környezetben: `python -m pip install -r requirements.txt`, majd
+`python app.py`. Nyisd meg a `http://127.0.0.1:8765` címet. Leállítás: Ctrl+C.
+A felület és a betűkészletek helyiek; a telepítés után internet nélkül is működik.
+A fázisnapló korábbi nézetei nem számolnak újra. A szerver leállításakor a futások elvesznek.
+
+## Tesztek
 
 ```powershell
 py -m unittest discover -s tests -v
