@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from bb84 import bob_merese, elokeszites, eve_merese, meres, szures
+from bb84 import bob_merese, elokeszites, eve_merese, meres, mintavetel, qber, szures
 
 
 class MeresTests(unittest.TestCase):
@@ -282,6 +282,136 @@ class SzuresTests(unittest.TestCase):
         poziciok = []
         szures(poziciok)
         self.assertEqual(poziciok, [])
+
+
+class MintavetelTests(unittest.TestCase):
+    def test_felfele_kerekit_es_kezeli_a_szazalek_hatarait(self):
+        for darab, szazalek, elvart in (
+            (3, 10, 1), (7, 25, 2), (4, 0, 0), (4, 100, 4),
+            (10, 12.5, 2), (1, 0.01, 1),
+        ):
+            with self.subTest(darab=darab, szazalek=szazalek):
+                poziciok = elokeszites([0] * darab, ["Z"] * darab, ["Z"] * darab)
+                bob_merese(poziciok)
+                szures(poziciok)
+
+                mintavetel(poziciok, szazalek)
+
+                self.assertEqual(sum(p["ellenorzo_minta"] for p in poziciok), elvart)
+
+    def test_csak_megtartott_poziciokbol_valaszt_es_megorzi_az_adatokat(self):
+        poziciok = elokeszites(
+            [0, 1, 0, 1], ["Z", "X", "Z", "X"], ["Z", "Z", "X", "X"]
+        )
+        bob_merese(poziciok)
+        szures(poziciok)
+        eredeti = [p.copy() for p in poziciok]
+
+        mintavetel(poziciok, 100)
+
+        self.assertEqual([p["ellenorzo_minta"] for p in poziciok],
+                         [True, False, False, True])
+        self.assertEqual(len(poziciok), 4)
+        for pozicio, korabbi in zip(poziciok, eredeti):
+            for kulcs in ("alice", "bob", "eve", "megtartva"):
+                self.assertEqual(pozicio[kulcs], korabbi[kulcs])
+
+    def test_ismetelt_hivas_mas_szazalekkal_sem_valaszt_uj_mintat(self):
+        poziciok = elokeszites([0] * 4, ["Z"] * 4, ["Z"] * 4)
+        bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 25)
+        elozo = [p.copy() for p in poziciok]
+
+        with patch("bb84.random.sample") as sorsolas:
+            mintavetel(poziciok, 100)
+            mintavetel(poziciok, 0)
+
+        sorsolas.assert_not_called()
+        self.assertEqual(poziciok, elozo)
+
+    def test_ervenytelen_szazaleknal_nem_modosit(self):
+        poziciok = elokeszites([0], ["Z"], ["Z"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        for szazalek in (-1, 101, "25", None, True, float("nan"), float("inf")):
+            with self.subTest(szazalek=szazalek):
+                with self.assertRaises(ValueError):
+                    mintavetel(poziciok, szazalek)
+                self.assertFalse(poziciok[0]["ellenorzo_minta"])
+
+    def test_szures_hianyaban_nincs_reszleges_mintavetel(self):
+        poziciok = elokeszites([0, 1], ["Z", "X"], ["Z", "X"])
+        bob_merese(poziciok)
+        szures(poziciok[:1])
+        with self.assertRaises(ValueError):
+            mintavetel(poziciok, 100)
+        self.assertTrue(all(not p["ellenorzo_minta"] for p in poziciok))
+
+    def test_ures_szurt_sorozatbol_nincs_minta(self):
+        poziciok = elokeszites([0], ["Z"], ["X"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 100)
+        self.assertFalse(poziciok[0]["ellenorzo_minta"])
+        self.assertIsNone(qber(poziciok))
+        mintavetel([], 50)
+
+
+class QberTests(unittest.TestCase):
+    def test_egy_elteres_harom_mintabitbol(self):
+        poziciok = elokeszites([0, 1, 0], ["Z"] * 3, ["Z"] * 3, ["X"] * 3)
+        with patch("bb84.random.choice", side_effect=[0, 0, 0, 0, 0, 0]):
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 100)
+        eredeti = [p.copy() for p in poziciok]
+
+        self.assertAlmostEqual(qber(poziciok), 1 / 3)
+        self.assertEqual(poziciok, eredeti)
+
+    def test_csak_a_kijelolt_minta_eltereseit_szamolja(self):
+        poziciok = elokeszites([0, 1], ["Z", "Z"], ["Z", "Z"], ["X", "X"])
+        with patch("bb84.random.choice", side_effect=[0, 0, 0, 0]):
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+        szures(poziciok)
+        with patch("bb84.random.sample", return_value=[poziciok[0]]):
+            mintavetel(poziciok, 50)
+        self.assertEqual(qber(poziciok), 0.0)
+
+    def test_teljesen_hibas_minta_aranya_egy(self):
+        poziciok = elokeszites([0], ["Z"], ["Z"], ["X"])
+        with patch("bb84.random.choice", side_effect=[1, 1]):
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 100)
+        self.assertEqual(qber(poziciok), 1.0)
+
+    def test_ures_minta_nem_hibamentes_meres(self):
+        poziciok = elokeszites([0], ["Z"], ["Z"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 0)
+        self.assertIsNone(qber(poziciok))
+        self.assertIsNone(qber([]))
+
+    def test_elvetett_mintapoziciot_visszautasit(self):
+        poziciok = elokeszites([0], ["Z"], ["X"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        poziciok[0]["ellenorzo_minta"] = True
+        with self.assertRaises(ValueError):
+            qber(poziciok)
+
+    def test_ismeretlen_mintabitet_visszautasit(self):
+        poziciok = elokeszites([0], ["Z"], ["Z"])
+        poziciok[0]["megtartva"] = True
+        poziciok[0]["ellenorzo_minta"] = True
+        with self.assertRaises(ValueError):
+            qber(poziciok)
 
 
 if __name__ == "__main__":

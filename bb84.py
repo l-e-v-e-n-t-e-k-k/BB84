@@ -1,5 +1,6 @@
 """Az ideális BB84-modell elemi műveletei."""
 
+import math
 import random
 
 def meres(allapot: tuple[str, int], meresi_bazis: str) -> int:
@@ -14,12 +15,7 @@ def meres(allapot: tuple[str, int], meresi_bazis: str) -> int:
         return random.choice((0, 1))
 
 
-def elokeszites(
-    alice_bitek: list[int],
-    alice_bazisok: list[str],
-    bob_bazisok: list[str],
-    eve_bazisok: list[str] | None = None,
-) -> list[dict]:
+def elokeszites(alice_bitek: list[int], alice_bazisok: list[str], bob_bazisok: list[str], eve_bazisok: list[str] | None = None,) -> list[dict]:
     """Létrehozza a futás mérés előtti pozícióit.
 
     Üres, eltérő hosszúságú vagy érvénytelen értékeket tartalmazó
@@ -138,3 +134,67 @@ def szures(poziciok: list[dict]) -> None:
             pozicio["megtartva"] = True
         else:
             pozicio["megtartva"] = False
+
+
+def mintavetel(poziciok: list[dict], szazalek: float) -> None:
+    """Százalék alapján megjelöli a nyilvánosan ellenőrzendő pozíciókat.
+
+    A mintaméretet felfelé kerekítjük,
+    ezért pozitív százalék és nem üres szűrt sorozat mellett legalább
+    egy pozíciót választunk. A 0% és az üres szűrt sorozat üres mintát ad.
+    Előbb minden pozíció szűrését el kell végezni.
+
+    Másik minta kipróbálásához új futás kell.
+    """
+    if (
+        isinstance(szazalek, bool)
+        or not isinstance(szazalek, (int, float))
+        or not 0 <= szazalek <= 100
+    ):
+        raise ValueError("A mintavetel szazaleka 0 es 100 kozotti szam legyen")
+
+    megtartott_poziciok = []
+    for pozicio in poziciok:
+        if pozicio["megtartva"] is None:
+            raise ValueError("A mintavetel elott a szurest vegre kell hajtani")
+        if pozicio["megtartva"] is True:
+            megtartott_poziciok.append(pozicio)
+
+    # Egy újabb lekérés nem sorsolhatja újra a már nyilvánosságra hozott mintát.
+    if any(pozicio["ellenorzo_minta"] for pozicio in poziciok):
+        return
+
+    mintameret = math.ceil(len(megtartott_poziciok) * szazalek / 100)
+    # A sample ismétlés nélkül választ. A kiválasztott elemek ugyanazok a
+    # szótárak, ezért a jelölés az eredeti pozíciólistában is megjelenik.
+    minta = random.sample(megtartott_poziciok, mintameret)
+    for pozicio in minta:
+        pozicio["ellenorzo_minta"] = True
+
+
+def qber(poziciok: list[dict]) -> float | None:
+    """Visszaadja az ellenőrző mintában eltérő bitek arányát, 0 és 1 között.
+
+    Pl egy eltérés három ellenőrzött bitből 1/3 eredményt ad.
+    Százalékos megjelenítéshez ezt 100-zal kell szorozni.
+    Üres mintánál None az eredmény: ez nem azonos a hibamentes, 0 QBER-rel.
+    """
+    ellenorzott_db = 0
+    elteresek = 0
+    for pozicio in poziciok:
+        if not pozicio["ellenorzo_minta"]:
+            continue
+        if pozicio["megtartva"] is not True:
+            raise ValueError("Ellenorzo mintaba csak megtartott pozicio kerulhet")
+
+        alice_bit = pozicio["alice"][1]
+        bob_bit = pozicio["bob"][1]
+        if alice_bit is None or bob_bit is None:
+            raise ValueError("Az ellenorzo mintaban minden bitnek ismertnek kell lennie")
+        ellenorzott_db += 1
+        if alice_bit != bob_bit:
+            elteresek += 1
+
+    if ellenorzott_db == 0:
+        return None
+    return elteresek / ellenorzott_db
