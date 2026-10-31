@@ -1,7 +1,10 @@
 import unittest
 from unittest.mock import patch
 
-from bb84 import bob_merese, elokeszites, eve_merese, meres, mintavetel, qber, szures
+from bb84 import (
+    bob_merese, elokeszites, eve_merese, kulcsjeloltek,
+    meres, mintavetel, qber, szures,
+)
 
 
 class MeresTests(unittest.TestCase):
@@ -412,6 +415,72 @@ class QberTests(unittest.TestCase):
         poziciok[0]["ellenorzo_minta"] = True
         with self.assertRaises(ValueError):
             qber(poziciok)
+
+
+class KulcsjeloltekTests(unittest.TestCase):
+    def test_kivalasztas_sorrend_es_eredeti_adatok_megorzese(self):
+        poziciok = elokeszites(
+            [1, 0, 0, 1, 1, 0], ["Z"] * 6,
+            ["Z", "X", "Z", "Z", "X", "Z"],
+        )
+        with patch("bb84.random.choice", side_effect=[0, 0]):
+            bob_merese(poziciok)
+        szures(poziciok)
+        with patch("bb84.random.sample", return_value=[poziciok[2]]):
+            mintavetel(poziciok, 25)
+        eredeti = [p.copy() for p in poziciok]
+
+        self.assertEqual(kulcsjeloltek(poziciok), ([1, 1, 0], [1, 1, 0]))
+        self.assertEqual(poziciok, eredeti)
+
+    def test_eve_okozta_elterest_nem_javitja_ki(self):
+        poziciok = elokeszites([0, 1], ["Z"] * 2, ["Z"] * 2, ["X"] * 2)
+        with patch("bb84.random.choice", side_effect=[1, 0, 1, 1]):
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+        szures(poziciok)
+        with patch("bb84.random.sample", return_value=[poziciok[1]]):
+            mintavetel(poziciok, 50)
+
+        self.assertEqual(kulcsjeloltek(poziciok), ([0], [1]))
+
+    def test_teljes_minta_utan_ures_kulcsjeloltek(self):
+        poziciok = elokeszites([0, 1], ["Z", "X"], ["Z", "X"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 100)
+
+        self.assertEqual(kulcsjeloltek(poziciok), ([], []))
+
+    def test_megtartott_pozicio_nelkul_ures_eredmeny(self):
+        poziciok = elokeszites([0], ["Z"], ["X"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 25)
+
+        self.assertEqual(kulcsjeloltek(poziciok), ([], []))
+        self.assertEqual(kulcsjeloltek([]), ([], []))
+
+    def test_nulla_szazaleknal_minden_megtartott_bit_megmarad(self):
+        poziciok = elokeszites([0, 1], ["Z", "X"], ["Z", "X"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        mintavetel(poziciok, 0)
+
+        self.assertEqual(kulcsjeloltek(poziciok), ([0, 1], [0, 1]))
+
+    def test_hianyzo_szuresnel_hibat_jelez(self):
+        poziciok = elokeszites([0, 1], ["Z", "X"], ["Z", "X"])
+        bob_merese(poziciok)
+        szures(poziciok[:1])
+        with self.assertRaises(ValueError):
+            kulcsjeloltek(poziciok)
+
+    def test_ismeretlen_bob_bit_nem_kerulhet_az_eredmenybe(self):
+        poziciok = elokeszites([0], ["Z"], ["Z"])
+        poziciok[0]["megtartva"] = True
+        with self.assertRaises(ValueError):
+            kulcsjeloltek(poziciok)
 
 
 if __name__ == "__main__":

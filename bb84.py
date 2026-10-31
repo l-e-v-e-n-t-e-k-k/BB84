@@ -198,3 +198,27 @@ def qber(poziciok: list[dict]) -> float | None:
     if ellenorzott_db == 0:
         return None
     return elteresek / ellenorzott_db
+
+
+def kulcsjeloltek(poziciok: list[dict]) -> tuple[list[int], list[int]]:
+    """Visszaadja Alice és Bob megmaradó bitjeit két külön listában.
+
+    A mintavétel után hívandó. Csak a megtartott, ellenőrzésre fel nem
+    fedett pozíciókat gyűjti, az eredeti sorrendben. Az esetleges hibákat
+    nem javítja: a két kulcsjelölt eltérhet. Üres eredménynél ([], []) jár
+    vissza
+    """
+    alice_kulcsjelolt = []
+    bob_kulcsjelolt = []
+    for pozicio in poziciok:
+        if pozicio["megtartva"] is None:
+            raise ValueError("A kulcsjeloltek elott a szurest vegre kell hajtani")
+        if pozicio["bob"][1] is None:
+            raise ValueError("A kulcsjeloltekhez Bob mereseinek ismertnek kell lenniuk")
+
+        # A felfedett mintabitek már nem titkosak, ezért kihagyjuk őket
+        if pozicio["megtartva"] is True and pozicio["ellenorzo_minta"] is False:
+            alice_kulcsjelolt.append(pozicio["alice"][1])
+            bob_kulcsjelolt.append(pozicio["bob"][1])
+
+    return alice_kulcsjelolt, bob_kulcsjelolt
