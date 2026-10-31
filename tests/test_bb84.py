@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from bb84 import bob_merese, elokeszites, eve_merese, meres
+from bb84 import bob_merese, elokeszites, eve_merese, meres, szures
 
 
 class MeresTests(unittest.TestCase):
@@ -207,6 +207,81 @@ class EveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             eve_merese(poziciok)
         self.assertTrue(all(p["eve"][1] is None for p in poziciok))
+
+
+class SzuresTests(unittest.TestCase):
+    def test_a_hatpozicios_pelda_szurt_sorozata_010(self):
+        poziciok = elokeszites(
+            [0, 1, 1, 0, 1, 0],
+            ["Z", "X", "Z", "X", "X", "Z"],
+            ["Z", "Z", "Z", "X", "Z", "X"],
+        )
+        with patch("bb84.random.choice", side_effect=[0, 1, 1]):
+            bob_merese(poziciok)
+        eredeti_adatok = [p.copy() for p in poziciok]
+
+        szures(poziciok)
+
+        self.assertEqual(
+            [p["megtartva"] for p in poziciok],
+            [True, False, True, True, False, False],
+        )
+        for resztvevo in ("alice", "bob"):
+            self.assertEqual(
+                [p[resztvevo][1] for p in poziciok if p["megtartva"]],
+                [0, 1, 0],
+            )
+        self.assertEqual(len(poziciok), len(eredeti_adatok))
+        for pozicio, eredeti in zip(poziciok, eredeti_adatok):
+            for kulcs in ("alice", "eve", "bob", "ellenorzo_minta"):
+                self.assertEqual(pozicio[kulcs], eredeti[kulcs])
+
+    def test_azonos_bazisu_hibas_bitet_is_megtartja(self):
+        poziciok = elokeszites([0], ["Z"], ["Z"], ["X"])
+        with patch("bb84.random.choice", side_effect=[1, 1]):
+            eve_merese(poziciok)
+            bob_merese(poziciok)
+
+        szures(poziciok)
+
+        self.assertTrue(poziciok[0]["megtartva"])
+        self.assertEqual(poziciok[0]["alice"], ("Z", 0))
+        self.assertEqual(poziciok[0]["bob"], ("Z", 1))
+
+    def test_eltero_bazisu_egyezo_bitet_is_elveti(self):
+        poziciok = elokeszites([0], ["Z"], ["X"])
+        with patch("bb84.random.choice", return_value=0):
+            bob_merese(poziciok)
+
+        szures(poziciok)
+
+        self.assertFalse(poziciok[0]["megtartva"])
+        self.assertEqual(len(poziciok), 1)
+
+    def test_hianyzo_bob_meresnel_nincs_reszleges_modositas(self):
+        poziciok = elokeszites([0, 1], ["Z", "X"], ["Z", "X"])
+        bob_merese(poziciok[:1])
+
+        with self.assertRaises(ValueError):
+            szures(poziciok)
+
+        self.assertTrue(all(p["megtartva"] is None for p in poziciok))
+
+    def test_ismetelt_szures_megorzi_az_eredmenyt_es_a_mintajelolest(self):
+        poziciok = elokeszites([0], ["Z"], ["Z"])
+        bob_merese(poziciok)
+        szures(poziciok)
+        poziciok[0]["ellenorzo_minta"] = True
+        elozo_allapot = [p.copy() for p in poziciok]
+
+        szures(poziciok)
+
+        self.assertEqual(poziciok, elozo_allapot)
+
+    def test_ures_poziciolista_is_kezelheto(self):
+        poziciok = []
+        szures(poziciok)
+        self.assertEqual(poziciok, [])
 
 
 if __name__ == "__main__":

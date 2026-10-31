@@ -120,3 +120,21 @@ def bob_merese(poziciok: list[dict]) -> None:
 
         mert_bit = meres(bemeneti_allapot, bob_bazis)
         pozicio["bob"] = (bob_bazis, mert_bit)
+
+
+def szures(poziciok: list[dict]) -> None:
+    """Megjelöli az azonos Alice–Bob bázisú pozíciókat megtartottként.
+
+    Bobnak előbb minden pozíciót meg kell mérnie. A függvény helyben
+    módosítja a megtartva mezőket.
+    """
+    for pozicio in poziciok:
+        if pozicio["bob"][1] is None:
+            raise ValueError("A szures elott Bob minden mereset vegre kell hajtani")
+
+    for pozicio in poziciok:
+        # A biteltérés megmarad: Eve hatását majd az ellenőrző minta vizsgálja
+        if pozicio["alice"][0] == pozicio["bob"][0]:
+            pozicio["megtartva"] = True
+        else:
+            pozicio["megtartva"] = False
