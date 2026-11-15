@@ -14,8 +14,14 @@
   <div class="page">
     <header class="masthead">
       <button id="settingsButton" class="button primary">Kísérlet beállítása</button>
+      {% if leallithato %}
+      <button id="shutdownButton" class="button secondary" type="button">Program leállítása</button>
+      {% endif %}
     </header>
-    <div class="run-strip"><span id="runSummary">Nincs aktív kísérlet.</span></div>
+    <div class="run-strip">
+      <span id="runSummary">Nincs aktív kísérlet.</span>
+      {% if leallithato %}<span id="shutdownStatus" role="status"></span>{% endif %}
+    </div>
 
     <main>
       <div class="lab-layout">

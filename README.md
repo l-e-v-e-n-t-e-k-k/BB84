@@ -45,10 +45,48 @@ egy bázislistát. Ekkor a sorrend: `eve_merese(poziciok)`, majd
 
 ## Böngészős indítás
 
-Aktív virtuális környezetben: `python -m pip install -r requirements.txt`, majd
-`python app.py`. Nyisd meg a `http://127.0.0.1:8765` címet. Leállítás: Ctrl+C.
+Aktív virtuális környezetben telepítsd a függőségeket a
+`python -m pip install -r requirements.txt` paranccsal, majd futtasd a
+`python launcher.py` parancsot. Az indító megnyitja a böngészőt a helyi címen.
+Alapból a 8765-ös portot használja. Ha ez foglalt, szabad portra vált.
+A pontos címet kiírja a konzolra. A **Program leállítása** gomb a böngészőben
+megerősítést kér, majd bezárja a szervert. A böngészőlap külön bezárható.
+Fejlesztéshez a `python app.py` paranccsal közvetlenül is indítható a szerver.
+A terminálban mindkét indítási módnál a Ctrl+C állítja le.
 A felület és a betűkészletek helyiek; a telepítés után internet nélkül is működik.
 A fázisnapló korábbi nézetei nem számolnak újra. A szerver leállításakor a futások elvesznek.
+
+## Windows-kiadás újraépítése
+
+A kiadás újraépítéséhez 64 bites Windowson Python 3.12.10 (x64) környezetet használunk. A
+`requirements-build.txt` rögzíti a PyInstaller 6.22.3 verzióját, valamint a
+csomagoláshoz és a futtatáshoz szükséges közvetett függőségek verzióit.
+A projekt mappájában hozd létre a virtuális környezetet, ha még nincs `.venv`,
+majd telepítsd a rögzített csomagokat.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --only-binary=:all: -r requirements-build.txt
+.\.venv\Scripts\python.exe -m pip check
+```
+
+Először a mappás, konzolos változatot készítsd el. Az indító a
+`dist\BB84\BB84.exe`. A futtatáshoz tartsd meg mellette a csomag többi fájlját.
+
+```powershell
+.\.venv\Scripts\python.exe -m PyInstaller --onedir --console --noupx --name BB84 --add-data "templates:templates" --add-data "static:static" launcher.py
+```
+
+Ha a mappás változatban működik a felület, a léptetés és a leállítás, az
+egyfájlos változatot az alábbi paranccsal készítheted el. A kimenet a `dist\BB84.exe`.
+
+```powershell
+.\.venv\Scripts\python.exe -m PyInstaller --onefile --console --noupx --name BB84 --add-data "templates:templates" --add-data "static:static" launcher.py
+```
+
+Az egyfájlos build helyi futási próbáját a Microsoft Defender karanténja
+szakította meg. A böngészőnyitást, a szimulációt és a leállítást a mappás
+kiadáson sikerült végigellenőrizni.
 
 ## Tesztek
 

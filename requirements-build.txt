@@ -1,0 +1,19 @@
+# Windows x64, Python 3.12.10
+-r requirements.txt
+
+# A futási csomagok közvetett függőségei
+blinker==1.9.0
+click==8.5.1
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.4
+Werkzeug==3.1.9
+
+# A csomagoló és a függőségei
+PyInstaller==6.22.3
+altgraph==0.17.5
+packaging==26.3
+pefile==2024.8.26
+pyinstaller-hooks-contrib==2026.10
+pywin32-ctypes==0.2.3
+setuptools==84.2.1

@@ -75,6 +75,7 @@ a {
 .masthead {
   padding:16px 0;
   display:flex;
+  flex-wrap:wrap;
   justify-content:flex-end;
   align-items:center;
   gap:24px
@@ -194,7 +195,8 @@ a {
   font-weight:600
 }
 
-.run-strip #runSummary {
+.run-strip #runSummary,
+.run-strip #shutdownStatus {
   letter-spacing:.3px;
   font-size:12px;
   font-weight:500
@@ -1095,6 +1097,7 @@ form small {
   }
   .masthead {
     padding:23px 0 18px;
+    gap:8px;
     align-items:flex-start
   }
   .wordmark {
@@ -1116,7 +1119,8 @@ form small {
     gap:8px;
     flex-wrap:wrap
   }
-  .run-strip #runSummary {
+  .run-strip #runSummary,
+  .run-strip #shutdownStatus {
     font-size:10px
   }
   .lab-layout {

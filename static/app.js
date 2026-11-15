@@ -10,6 +10,7 @@ const phases = [
   {id:"eredmenyek", name:"Eredmények", description:"A QBER a mintából, a kulcsjelöltek a fel nem fedett pozíciókból készülnek."},
 ];
 const $ = id => document.getElementById(id);
+const shutdownButton = $("shutdownButton");
 let responseState = {allapot:null, elozmenyek:[]};
 let viewPhase = null;
 let selectedIndex = null;
@@ -90,6 +91,7 @@ function drawControls() {
   $("nextButton").disabled = busy || !live || historical || finished;
   $("allButton").disabled = busy || !live || historical || !phaseParticipant(live) || live.kovetkezo_merendo === null;
   $("settingsButton").disabled = busy;
+  if (shutdownButton) shutdownButton.disabled = busy;
   $("resetButton").disabled = busy || !live;
   $("startButton").disabled = busy;
   $("randomButton").disabled = busy;
@@ -162,7 +164,7 @@ async function mutate(path, data={}) {
     $("announcement").textContent = after ? `${phases.find(p=>p.id===after.fazis).name}. ${after.poziciok.filter(p=>p.bob[1]!==null).length} Bob-mérés készült el.` : "Új kísérlet indítható.";
   } catch (error) {
     const target = $("settingsDialog").open ? $("formError") : $("globalError");
-    target.textContent = error.message === "Failed to fetch" ? "A helyi szerver nem érhető el. Ellenőrizd, hogy az app.py fut-e." : error.message;
+    target.textContent = error.message === "Failed to fetch" ? "A helyi szerver nem érhető el. Indítsd újra a BB84 alkalmazást." : error.message;
     target.hidden = false;
   } finally {
     busy = false;
@@ -191,6 +193,21 @@ $("settingsForm").addEventListener("submit", event => {
 $("nextButton").addEventListener("click", () => mutate("kovetkezo"));
 $("allButton").addEventListener("click", () => mutate("osszes"));
 $("resetButton").addEventListener("click", () => mutate("uj"));
+shutdownButton?.addEventListener("click", async () => {
+  if (busy || !window.confirm("Leállítod a BB84 programot? A futások adatai elvesznek.")) return;
+  busy = true;
+  drawControls();
+  const status = $("shutdownStatus");
+  status.textContent = "A BB84 leállítása folyamatban van…";
+  try {
+    const result = await api("leallitas", {});
+    status.textContent = result.uzenet;
+  } catch (error) {
+    status.textContent = error.message === "Failed to fetch" ? "A helyi szerver nem érhető el." : error.message;
+    busy = false;
+    drawControls();
+  }
+});
 $("liveButton").addEventListener("click", () => {viewPhase=null;selectedIndex=null;render();});
 $("phaseNav").addEventListener("click", event => {
   const button=event.target.closest("button[data-phase]");

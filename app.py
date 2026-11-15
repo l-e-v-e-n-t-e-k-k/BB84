@@ -1,5 +1,6 @@
 """Helyi webes kapcsolat a felület és a BB84-futásvezérlő között."""
 
+from collections.abc import Callable
 from copy import deepcopy
 import secrets
 from threading import RLock
@@ -11,7 +12,7 @@ from werkzeug.exceptions import HTTPException
 from controller import FutasVezerlo
 
 
-def create_app() -> Flask:
+def create_app(*, leallitasi_jelzes: Callable[[], None] | None = None) -> Flask:
     """Létrehozza a webalkalmazást, elkülönített böngészőmunkamenetekkel.
 
     A futások csak a helyi szerver memóriájában élnek. A böngésző sütije
@@ -65,7 +66,7 @@ def create_app() -> Flask:
 
     @app.get("/")
     def index():
-        return render_template("index.html")
+        return render_template("index.html", leallithato=leallitasi_jelzes is not None)
 
     @app.get("/api/allapot")
     def allapot():
@@ -136,6 +137,19 @@ def create_app() -> Flask:
         with zar:
             futasok.pop(session.pop("futas_id", None), None)
             return valasz(None)
+
+    @app.post("/api/leallitas")
+    def leallitas():
+        if leallitasi_jelzes is None:
+            return jsonify(hiba="A fejlesztői szervert Ctrl+C-vel állíthatod le."), 409
+        helyi_host = request.host.partition(":")[0] in ("127.0.0.1", "localhost")
+        azonos_eredet = request.headers.get("Origin") == request.host_url.rstrip("/")
+        if not helyi_host or not azonos_eredet:
+            return jsonify(hiba="A program a saját böngészős felületéről állítható le."), 403
+
+        valasz_obj = jsonify(uzenet="A BB84 leállítása elindult. Bezárhatod ezt a lapot.")
+        valasz_obj.call_on_close(leallitasi_jelzes)
+        return valasz_obj, 202
 
     @app.errorhandler(ValueError)
     def hibas_bemenet(hiba):

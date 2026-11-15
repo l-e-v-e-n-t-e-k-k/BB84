@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app import create_app
 
@@ -123,6 +123,34 @@ class WebTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("hiba", response.json)
         self.assertEqual(self.client.post("/api/inditas", json=[]).status_code, 400)
+
+    def test_fejlesztoi_modban_nincs_bongeszobol_leallitas(self):
+        self.assertNotIn('id="shutdownButton"', self.client.get("/").text)
+        self.assertEqual(self.client.post("/api/leallitas").status_code, 409)
+
+    def test_leallitas_a_valasz_lezarasa_utan_jelez(self):
+        jelzes = Mock()
+        kliens = create_app(leallitasi_jelzes=jelzes).test_client()
+        cim = "http://127.0.0.1:9876"
+        self.assertIn('id="shutdownButton"', kliens.get("/", base_url=cim).text)
+        with kliens.post("/api/leallitas", base_url=cim, headers={"Origin": cim}) as valasz:
+            self.assertEqual(valasz.status_code, 202)
+            self.assertIn("Bezárhatod", valasz.json["uzenet"])
+            jelzes.assert_not_called()
+        jelzes.assert_called_once_with()
+
+    def test_leallitast_kulso_oldal_vagy_get_keres_nem_indithat(self):
+        jelzes = Mock()
+        kliens = create_app(leallitasi_jelzes=jelzes).test_client()
+        helyi_cim = "http://127.0.0.1:9876"
+        self.assertEqual(kliens.get("/api/leallitas", base_url=helyi_cim).status_code, 405)
+        for cim, eredet in ((helyi_cim, None), (helyi_cim, "https://example.org"),
+                           ("http://example.org:9876", "http://example.org:9876")):
+            with self.subTest(cim=cim, eredet=eredet):
+                fejlec = {"Origin": eredet} if eredet else {}
+                with kliens.post("/api/leallitas", base_url=cim, headers=fejlec) as valasz:
+                    self.assertEqual(valasz.status_code, 403)
+        jelzes.assert_not_called()
 
 
 if __name__ == "__main__":
