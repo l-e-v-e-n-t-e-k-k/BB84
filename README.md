@@ -58,6 +58,15 @@ A fázisnapló korábbi nézetei nem számolnak újra. A szerver leállításako
 
 ## Windows-kiadás újraépítése
 
+A kész mappás kiadást a teljes `dist/BB84` mappával vagy a
+`dist/BB84-windows-x64.zip` kibontásával lehet átvinni másik gépre.
+A kibontott `BB84/BB84.exe` indításához a Python és a csomagjai már a
+kiadásban vannak. A jelenlegi kiadás 64 bites (x64) Windowshoz készült.
+
+A `BB84/_internal` könyvtár `.pyd` fájljait is tovább kell adni és a Gitben
+rögzíteni. Az `_socket.pyd` kihagyása `No module named '_socket'` hibát okoz.
+A `.gitignore` a `dist` alatt engedélyezi ezeket a natív modulokat.
+
 A kiadás újraépítéséhez 64 bites Windowson Python 3.12.10 (x64) környezetet használunk. A
 `requirements-build.txt` rögzíti a PyInstaller 6.22.3 verzióját, valamint a
 csomagoláshoz és a futtatáshoz szükséges közvetett függőségek verzióit.

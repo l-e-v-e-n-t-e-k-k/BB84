@@ -1,5 +1,7 @@
 __pycache__/
 *.py[cod]
+# A Windows-kiadás natív Python-moduljai a hordozható csomag részei.
+!/dist/**/*.pyd
 .venv/
 build/
 /BB84.spec
